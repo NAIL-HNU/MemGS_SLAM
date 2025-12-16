@@ -1,103 +1,88 @@
-# 1. Overview
-Recent advancements in 3D Gaussian Splatting
-(3DGS) have made a significant impact on rendering and
-reconstruction techniques. Current research predominantly focuses on improving rendering performance and reconstruction
-quality using high-performance desktop GPUs, largely overlooking applications for embedded platforms like micro air
-vehicles (MAVs). These devices, with their limited computational resources and memory, often face a trade-off between
-system performance and reconstruction quality. In this paper,
-we improve existing methods in terms of GPU memory usage
-while enhancing rendering quality. Specifically, to address
-redundant 3D Gaussian primitives in SLAM, we propose
-merging them in voxel space based on geometric similarity. This
-reduces GPU memory usage without impacting system runtime
-performance. Furthermore, rendering quality is improved by
-initializing 3D Gaussian primitives via Patch-Grid (PG) point
-sampling, enabling more accurate modeling of the entire scene.
-Quantitative and qualitative evaluations on publicly available
-datasets demonstrate the effectiveness of our improvements.
-# 2. Prerequisites
-## 2.1 Dependencies
+## Prerequisites
+### Dependencies
 ```
 sudo apt install libeigen3-dev libboost-all-dev libjsoncpp-dev libopengl-dev mesa-utils libglfw3-dev libglm-dev
 ```
-## 2.2 Installation
+
+For detailed dependency versions and installation instructions (including OpenCV with CUDA and LibTorch),   
+please refer to the Photo-SLAM [Dependencies](https://github.com/HuajianUP/Photo-SLAM/tree/main?tab=readme-ov-file#dependencies) section.
+
+> We conducted tests on a desktop equipped with an NVIDIA RTX 4080 SUPER and running Ubuntu 20.04 LTS.
+
+### Installation
 ```
-git clone --recursive https://github.com/NAIL-HNU/MemGS.git
+git clone https://github.com/NAIL-HNU/MemGS.git
 
 ./build.sh
 ```
-# 3. Usage
-## 3.1 Download the dataset
-```
-./scripts/download_replica.sh
-./scripts/download_tum.sh
-```
-## 3.2 Run Replica & TUM RGB-D
-```
-./scripts/replica_mono.sh
-./scripts/replica_rgbd.sh
-./scripts/tum_mono.sh
-./scripts/tum_rgbd.sh
-```
-## 3.3 MemGS Examples with Real Cameras
-In the file `examples/realsense_rgbd.cpp`, we provide an example with the `Intel RealSense D455`
+
+## Prepare the datasets
+The benchmark datasets used in our paper include [Replica (NICE-SLAM version)](https://github.com/cvg/nice-slam) and [TUM RGB-D](https://cvg.cit.tum.de/data/datasets/rgbd-dataset/download).
 
 ```
-./scripts/realsense_d455.sh
-```
-# 4. Evaluation
-For ease of evaluation, we also uploaded the baseline code and added code snippets for saving results.  
-It is worth noting that in order to maintain consistency with the original directory structure, the locations of these startup scripts are different.   
-To run these scripts, follow the steps below:
-## 4.1 Photo-SLAM
-```
-git checkout eval/Photo_SLAM
+cd scripts
+chmod +x ./*.sh
 
-# run scripts
-./scripts/replica_mono.sh
-./scripts/replica_rgbd.sh
+./download_replica.sh
+./download_tum.sh
+```
 
-./scripts/tum_mono.sh
-./scripts/tum_rgbd.sh
-```
-## 4.2 MonoGS
-```
-git checkout eval/MonoGS
+## Examples on Benchmark Datasets
+For testing, you can use the commands below to run the system after specifying `PATH_TO_DATASET` and `PATH_TO_SAVE_RESULTS`. 
+To enable the viewer, simply remove the `no_viewer` flag at the end of the command.
 
-# run scripts
-./scripts/replica.sh
-./scripts/tum.sh
-```
-## 4.3 SplaTAM
-```
-git checkout eval/SplaTAM
+We provide example commands for the two datasets below:
 
-# run scripts
-./bash_scripts/replica.sh
-./bash_scripts/tum.sh
+1. On Replica RGB-D:
 ```
-## 4.4 GS_ICP_SLAM
+./bin/tum_rgbd \
+    ./ORB-SLAM3/Vocabulary/ORBvoc.txt \
+    ./cfg/ORB_SLAM3/RGB-D/Replica/office0.yaml \
+    ./cfg/gaussian_mapper/RGB-D/Replica/replica_rgbd.yaml \
+    PATH_TO_Dataset/office0 \
+    PATH_TO_SAVE_RESULTS
+    # no_viewer 
 ```
-git checkout eval/GS_ICP_SLAM
 
-# run scripts
-./replica.sh
-./tum.sh
-```
-## 4.5 Ours
-```
-git checkout main
+> For Mono and RGB-D examples for each sequence of the Replica dataset,  
+> please refer to `replica_mono.yaml` and `replica_rgbd.yaml` in the configuration folder.
 
-# run scripts
-./scripts/replica_mono.sh
-./scripts/replica_rgbd.sh
-
-./scripts/tum_mono.sh
-./scripts/tum_rgbd.sh
+2. On TUM RGB-D:
 ```
-# Acknowledgement
-We extend our gratitude to the developers of the repositories listed below for making their code available. 
-- [HuajianUP/Photo-SLAM](https://github.com/HuajianUP/Photo-SLAM.git): A real-time framework for visual odometry-based tracking and mapping of 3DGS
-- [muskie82/MonoGS](https://github.com/muskie82/MonoGS.git) A multi-process framework for tracking and mapping based on 3DGS
-- [spla-tam/SplaTAM](https://github.com/spla-tam/SplaTAM.git): The first open source 3DGS-based SLAM framework
-- [Lab-of-AI-and-Robotics/GS_ICP_SLAM](https://github.com/Lab-of-AI-and-Robotics/GS_ICP_SLAM.git): A novel SLAM framework combining G-ICP and 3DGS
+./bin/tum_mono \
+    ./ORB-SLAM3/Vocabulary/ORBvoc.txt \
+    ./cfg/ORB_SLAM3/RGB-D/TUM/tum_freiburg1_desk.yaml \
+    ./cfg/gaussian_mapper/RGB-D/TUM/tum_freiburg1_desk.yaml \
+    PATH_TO_Dataset/tum_freiburg1_desk \
+    ./cfg/ORB_SLAM3/RGB-D/TUM/associations/tum_freiburg1_desk.txt \
+    PATH_TO_SAVE_RESULTS
+    # no_viewer 
+```
+
+> For Mono examples for each sequence of the TUM dataset,   
+> please remove the association file in the configuration folder.
+
+Remarks: The codebase has been further optimized since the paper submission, mainly focusing on reducing the number of points during merging. Consequently, results obtained using the released implementation may differ slightly from those reported in the paper. For reference, please consider the results obtained from running the code on your target device as the definitive ones.
+
+## Examples with Real Cameras 
+We provide an example using the Intel RealSense D455 in `examples/realsense_rgbd.cpp`.  
+Please refer to `scripts/realsense_d455.sh` for running this example.
+
+## Acknowledgement
+This project is built upon the excellent work of many open-source projects.  
+We would like to express our sincere gratitude to the authors of the following repositories:
+- [Photo-SLAM](https://github.com/HuajianUP/Photo-SLAM.git)
+- [diff-gaussian-rasterization-w-pose](https://github.com/rmurai0610/diff-gaussian-rasterization-w-pose.git)
+  
+## Known Issues
+- The parameter `Grid.size` in the configuration file may affect the mapping quality across different scenes, even when the same dataset is run multiple times due to random initialization. We suggest that users try smaller grid size settings for better results.
+- The parameter `Merge.resolution` and `Merge.interval` in the configuration file may affect the final number of points in the reconstructed model as well as GPU memory usage. We recommend setting these parameters according to the available memory capacity of the target platform:  
+    - a. `Merge.resolution`: in general, higher values result in fewer points after merging, but may reduce computational efficiency.
+    - b. `Merge.interval`: smaller values lead to more frequent merging operations and can be configured in conjunction with the parameters described below. 
+- The parameter `Merge.enable_LBFGS_opt` in the configuration file controls whether LBFGS optimization is enabled during online merging. Enabling this option may improve mapping quality, but it also increases the computational cost of the merging process. Users may disable it and use only the initial (non-optimized) values instead of the optimized values to achieve faster runtime performance if needed.
+    - a. `true`: enables LBFGS optimization during merging. To maintain real-time performance, it is recommended to use a larger `Merge.interval` value (e.g., 1000).
+    - b. `false`: disables LBFGS optimization during merging. In this case, a smaller `Merge.interval` value (e.g., 100) can be used to perform more frequent merging operations.
+
+## License
+The source code of this package is released under the GPLv3 license (see the LICENSE file for details).  
+The following third-party libraries are used in this package. Please refer to their respective licenses for details.
