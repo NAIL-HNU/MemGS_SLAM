@@ -1066,7 +1066,6 @@ void GaussianModel::savePly(std::filesystem::path result_path)
 
     fb_binary.close();
 
-    // hack@yinloonga: Points Num
     std::filesystem::path parent_dir = result_path.parent_path().parent_path().parent_path().parent_path().parent_path();
     std::string txt_name = "eval.txt";
     std::filesystem::path txt_path = parent_dir / txt_name;
@@ -1074,9 +1073,7 @@ void GaussianModel::savePly(std::filesystem::path result_path)
     if (!txt_file.is_open() || txt_file.fail())
         throw std::runtime_error("Fail to open txt file at " + txt_path.string());
     txt_file << "Points Num: " << xyz.size(0) << std::endl;
-    const std::string YELLOW = "\033[1;33m";
-    const std::string RESET = "\033[0m";
-    std::cout << YELLOW << "Points Num: " << xyz.size(0) << RESET << std::endl;
+    std::cout << "### Points Num: " << xyz.size(0) << std::endl;
 }
 
 void GaussianModel::saveSparsePointsPly(std::filesystem::path result_path)

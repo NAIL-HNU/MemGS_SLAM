@@ -1206,7 +1206,6 @@ void KeyFrame::GetKeypointInfo(
 
 void KeyFrame::AddTextureLessPoints(const cv::Mat& ImGray, std::vector<float>& pixelsUndist, std::vector<float>& pointsLocal) {
     // Get the current image mask of keypoints
-    auto tt_start = std::chrono::steady_clock::now();
 
     cv::Mat mask = cv::Mat::zeros(this->imgLeftRGB.size(), CV_8UC1);
     for(int i = 0; i < N; i++){
@@ -1214,40 +1213,32 @@ void KeyFrame::AddTextureLessPoints(const cv::Mat& ImGray, std::vector<float>& p
         int uv_x = static_cast<int>(std::floor(pt.x));
         int uv_y = static_cast<int>(std::floor(pt.y));
         if (uv_x < 0 || uv_x >= mask.cols || uv_y < 0 || uv_y >= mask.rows) {
-            std::cerr << ClrUtils::RED << "警告: 位于 (" << uv_x << ", " << uv_y << ") 特征点超出图像边界." << ClrUtils::RESET << std::endl;
             continue;  // Skip out-of-bounds keypoints
         }
         mask.at<uchar>(uv_y, uv_x) = 1;
     }
 
-    // feat@yinloonga 将图像划分为网格的三个超参数
-    int grid_size = static_grid.size /* Monocular: 80, RGBD: 40  */, num_thr = static_grid.numThr/* 每个cell内的特征点数量 */;
+    int grid_size = static_grid.size /* Monocular: 80, RGBD: 40  */, num_thr = static_grid.numThr;
     int num_grid_y = static_cast<int>(std::ceil(static_cast<float>(ImGray.rows) / grid_size));
     int num_grid_x = static_cast<int>(std::ceil(static_cast<float>(ImGray.cols) / grid_size));
     
-    cv::Mat features_count = cv::Mat::zeros(num_grid_y, num_grid_x, CV_32S);  // 统计每个cell内的特征点数量
+    cv::Mat features_count = cv::Mat::zeros(num_grid_y, num_grid_x, CV_32S);
     for(int i = 0; i < N; i++) {
         cv::Point2f pt = mvKeysUn[i].pt;
         int grid_x = static_cast<int>(std::floor(pt.x / grid_size));
         int grid_y = static_cast<int>(std::floor(pt.y / grid_size));
         if (grid_x < 0 || grid_x >= num_grid_x || grid_y < 0 || grid_y >= num_grid_y) {
-            std::cerr << ClrUtils::RED << "警告: 位于 (" << grid_x << ", " << grid_y << ") 的特征点超出网格范围." << ClrUtils::RESET << std::endl;
             continue;  // Skip out-of-bounds keypoints
         }
         features_count.at<int>(grid_y, grid_x)++;
     }
-    if (features_count.empty()) throw std::runtime_error("当前图像没有特征点, 请检查输入图像");
 
     cv::Mat no_feature_areas = features_count < num_thr;
-    if (no_feature_areas.empty()) throw std::runtime_error("整张图像特征均与, 特征数满足阈值要求"); 
-    
-    // 随机采样无特征区域的点
     std::random_device rd; std::mt19937 gen(rd());
     int x_new, y_new, x_start, y_start, x_end, y_end, edge_margin = 5, cnt_feats = 0, cnt_for = 0;  // margin to avoid the edge of the cell
     for(int y = 0; y < num_grid_y; y++){
         for(int x = 0; x < num_grid_x; x++){
             if(no_feature_areas.at<uchar>(y, x)){
-                // 计算当前网格的起始和结束坐标
                 x_start = x * grid_size + edge_margin;
                 y_start = y * grid_size + edge_margin;
                 x_end = std::min((x + 1) * grid_size - edge_margin, ImGray.cols);
@@ -1257,7 +1248,6 @@ void KeyFrame::AddTextureLessPoints(const cv::Mat& ImGray, std::vector<float>& p
                 std::uniform_int_distribution<int> dis_x(x_start, x_end-1);
                 std::uniform_int_distribution<int> dis_y(y_start, y_end-1);
 
-                // 在当前网格内随机采样 cnt_for 个点
                 cnt_feats = features_count.at<int>(y, x);
                 cnt_for = cnt_feats ? std::max(0, num_thr - cnt_feats) : num_thr;
                 for (int i=0; i < cnt_for; i++) {
@@ -1286,20 +1276,12 @@ void KeyFrame::AddTextureLessPoints(const cv::Mat& ImGray, std::vector<float>& p
                             pointsLocal.emplace_back(-1.0f);
                         }
                     } else {
-                        i--;  // 如果该点已经有特征点了, 则重新采样
+                        i--;
                     }
                 }
             }
         }
     }
-
-    auto tt_end = std::chrono::steady_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(tt_end - tt_start).count();
-    // std::cout << ClrUtils::YELLOW << "[KeyFrame] ID: " << this->mnId << ", num_grid (x, y): " << num_grid_x << ", " << num_grid_y
-    //           << ", 深度图: " << (!this->imgAuxiliary.empty() ? "有" : "无")
-    //           << ", 有特征区域网格数量: " << cv::countNonZero(features_count >= num_thr)
-    //           << ", 无特征区域网格数量: " << cv::countNonZero(no_feature_areas)
-    //           << ", 执行时间: " << duration << " us" << ClrUtils::RESET << std::endl;
 }
 
 } //namespace ORB_SLAM

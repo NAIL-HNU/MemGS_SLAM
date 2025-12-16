@@ -554,7 +554,6 @@ public:
         cout << "Point distribution in KeyFrame: left-> " << left << " --- right-> " << right << endl;
     }
 
-    // feat@yinloonga 随机采样
     bool mbAddTexturelessPoints = false;
 
 };

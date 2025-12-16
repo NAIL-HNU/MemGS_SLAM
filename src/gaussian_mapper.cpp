@@ -941,7 +941,6 @@ void GaussianMapper::combineMappingOperations()
         ORB_SLAM3::MappingOperation opr =
             pSLAM_->getAtlas()->getAndPopMappingOperation();
 
-        // bug@yinloonga 偶尔遇到localKFIds为空的情况
         std::vector<std::size_t> localKFIds = opr.getAllKFsId();
         if (!localKFIds.empty()) {
             auto min_max = std::minmax_element(localKFIds.begin(), localKFIds.end());
@@ -1842,7 +1841,6 @@ void GaussianMapper::renderAndRecordAllKeyframes(
         ++kfit;
     }
 
-    // hack@yinloonga: PSNR
     std::string txt_name = "eval.txt";
     std::filesystem::path txt_path = result_dir_ / txt_name;
     std::ofstream txt_file(txt_path, std::ios::out | std::ios::app);
@@ -1850,13 +1848,8 @@ void GaussianMapper::renderAndRecordAllKeyframes(
         throw std::runtime_error("[GaussianMapper::renderAndRecordAllKeyframes]Cannot open file at " + txt_path.string());
     txt_file << "PSNR: " << std::accumulate(avg_psnr.begin(), avg_psnr.end(), 0.0) / avg_psnr.size() << std::endl;
     txt_file << "PSNR_GS: " << std::accumulate(avg_psnr_gs.begin(), avg_psnr_gs.end(), 0.0) / avg_psnr_gs.size() << std::endl;
-    const std::string YELLOW = "\033[1;33m";
-    const std::string GREEN = "\033[1;32m";
-    const std::string RESET = "\033[0m";
-    std::cerr << GREEN << "共计Merge次数: " << this->do_merge_cnt << ", 体素内点对过多次数: " << gaussians_->over_pair_cnt << RESET << std::endl;
-    std::cerr << GREEN << "关键帧数量: " << nkfs << RESET << std::endl;
-    std::cerr << GREEN << "PSNR: " << std::accumulate(avg_psnr.begin(), avg_psnr.end(), 0.0) / avg_psnr.size() << RESET << std::endl;
-    std::cerr << GREEN << "PSNR_GS: " << std::accumulate(avg_psnr_gs.begin(), avg_psnr_gs.end(), 0.0) / avg_psnr_gs.size() << RESET << std::endl;
+    std::cerr << "### PSNR: " << std::accumulate(avg_psnr.begin(), avg_psnr.end(), 0.0) / avg_psnr.size() << std::endl;
+    std::cerr << "### PSNR_GS: " << std::accumulate(avg_psnr_gs.begin(), avg_psnr_gs.end(), 0.0) / avg_psnr_gs.size() << std::endl;
 }
 
 void GaussianMapper::savePly(std::filesystem::path result_dir)
